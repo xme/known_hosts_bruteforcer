@@ -2,13 +2,14 @@
 #
 # SSH known_hosts file bruteforcer
 #
-# v1.1 - Xavier Mertens <xavier(at)rootshell(dot)be>
+# v1.2 - Xavier Mertens <xavier(at)rootshell(dot)be>
 #
 # This Perl script read a SSH known_host file containing hashed hosts and try to find hostnames
 # or IP addresses
 #
 # 20101103 : Created
 # 20101116 : v1.1 added support for IP range - PaweÅ‚ RÃ³Å¼aÅ„ski <rozie(at)poczta(dot)onet(dot)pl>
+# 20101228 : v1.2 change to NetAddr::IP, needs less memory, IPv6 ready - PaweÅ^Â RÃ³Å¼aÅ^Äski <rozie(at)poczta(dot)onet(dot)pl>
 #
 # Todo
 # ----
@@ -20,7 +21,7 @@ use Getopt::Std;
 use Digest::HMAC_SHA1;
 use MIME::Base64;
 use Net::IP;
-use Net::Netmask;
+use NetAddr::IP;
 
 $MAXLEN = 8;                            # Maximum hostnames length to check
 $MAXIP  = 4294967296; # 2^32            # The whole IPv4 space
@@ -101,14 +102,16 @@ $loops=0;
 # This block will be executed only for IP range check
 if ($ipRange){
         print "Running IP range mode\n";
-        $block = new Net::Netmask ($ipRange);
-        @ips_to_check = ($block->enumerate());
-        foreach $tmpHost(@ips_to_check){
-                if ($line = searchHash($tmpHost)) {
-                        printf("*** Found host: %s (line %d) ***\n", $tmpHost, $line + 1);
-                }
-                ($verbose) && (($loops % 1000) == 0) && print STDERR "Testing: $tmpHost ($loops probes) ...\n";
-                $loops++;
+	$block = new NetAddr::IP ($ipRange);
+	$count=$block->num();
+	for ($loops=0;$loops<$count;$loops++){
+		$tmpHost=$block->nth($loops);
+                $addr=new NetAddr::IP ($tmpHost);
+                $tmpHost=($addr->addr);
+		if ($line = searchHash($tmpHost)) {
+			printf("*** Found host: %s (line %d) ***\n", $tmpHost, $line + 1);
+		}
+		($verbose) && (($loops % 1000) == 0) && print STDERR "Testing: $tmpHost ($loops probes) ...\n";
         }
         # Inform that all was checked and finish program
         print "Whole range checked.\n";
