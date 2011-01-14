@@ -8,20 +8,19 @@
 # or IP addresses
 #
 # 20101103 : Created
-# 20101116 : v1.1 added support for IP range - PaweÅ‚ RÃ³Å¼aÅ„ski <rozie(at)poczta(dot)onet(dot)pl>
-# 20101228 : v1.2 change to NetAddr::IP, needs less memory, IPv6 ready - PaweÅ^Â RÃ³Å¼aÅ^Äski <rozie(at)poczta(dot)onet(dot)pl>
+# 20101116 : v1.1 added support for IP range - Pawe³ Ró¿añski <rozie(at)poczta(dot)onet(dot)pl>
+# 20101228 : v1.2 change to NetAddr::IP, needs less memory, IPv6 ready - Pawe³ Ró¿añski <rozie(at)poczta(dot)onet(dot)pl>
+# 20110114 : v1.3 added support for IPv6 - Pawe³ Ró¿añski <rozie(at)poczta(dot)onet(dot)pl>
 #
 # Todo
 # ----
-# - Support for IPv6 addresses
 # - Increase performances
-#
+# - Consider cleaning up -i option - $MAXIP, $ipMode and so on - -r has all functions and IPv6 support.
 
 use Getopt::Std;
 use Digest::HMAC_SHA1;
 use MIME::Base64;
-use Net::IP;
-use NetAddr::IP;
+use NetAddr::IP qw(:lower);
 
 $MAXLEN = 8;                            # Maximum hostnames length to check
 $MAXIP  = 4294967296; # 2^32            # The whole IPv4 space
@@ -104,15 +103,36 @@ if ($ipRange){
         print "Running IP range mode\n";
 	$block = new NetAddr::IP ($ipRange);
 	$count=$block->num();
-	for ($loops=0;$loops<$count;$loops++){
-		$tmpHost=$block->nth($loops);
-                $addr=new NetAddr::IP ($tmpHost);
-                $tmpHost=($addr->addr);
-		if ($line = searchHash($tmpHost)) {
-			printf("*** Found host: %s (line %d) ***\n", $tmpHost, $line + 1);
-		}
-		($verbose) && (($loops % 1000) == 0) && print STDERR "Testing: $tmpHost ($loops probes) ...\n";
-        }
+	$ver=$block->version();
+
+	if ($ver == 4){
+		print "IPv4 detected on input\n";
+		for ($loops=0;$loops<$count;$loops++){
+			$tmpHost=$block->nth($loops);
+                	$addr=new NetAddr::IP ($tmpHost);
+	                $tmpHost=($addr->addr);
+			if ($line = searchHash($tmpHost)) {
+				printf("*** Found host: %s (line %d) ***\n", $tmpHost, $line + 1);
+			}
+			($verbose) && (($loops % 1000) == 0) && print STDERR "Testing: $tmpHost ($loops probes) ...\n";
+	        }
+	}
+	elsif ($ver == 6){
+		print "IPv6 detected on input\n";
+		for ($loops=0;$loops<$count;$loops++){
+                        $tmpHost=$block->nth($loops);
+                        $addr=new NetAddr::IP ($tmpHost);
+                        $tmpHost=($addr->addr);
+			$tmpHostShort=($addr->short);
+                        if ($line = searchHash($tmpHost)) {
+                                printf("*** Found host: %s (line %d) ***\n", $tmpHost, $line + 1);
+                        }
+                        if ($line = searchHash($tmpHostShort)) {
+                                printf("*** Found host: %s (line %d) ***\n", $tmpHostShort, $line + 1);
+                        }
+                        ($verbose) && (($loops % 1000) == 0) && print STDERR "Testing: $tmpHost && $tmpHostShort ($loops probes) ...\n";
+                }
+	}
         # Inform that all was checked and finish program
         print "Whole range checked.\n";
         exit 0;
