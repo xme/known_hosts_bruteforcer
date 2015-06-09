@@ -149,8 +149,8 @@ while(1) {
 
                 # If we have an initial IP, check the syntax and use it
                 if ($initialStr ne "") {
-                        my $ip = new Net::IP($initialStr);
-                        $initialIP = $ip->intip();
+                        my $ip = new NetAddr::IP($initialStr);
+                        $initialIP = $ip->bigint;
                 }
                 else {
                         $initialIP = 0;
