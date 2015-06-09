@@ -6,3 +6,6 @@ This project is a SSH known_hosts file bruteforcer.
 For more information, visit: http://blog.rootshell.be/2010/11/03/bruteforcing-ssh-known_hosts-files/
 
 Feel free to contribute to the script.
+
+Additional packages needed:
+* libnetaddr-ip-perl
